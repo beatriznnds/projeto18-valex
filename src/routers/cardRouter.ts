@@ -9,6 +9,7 @@ const cardRouter = Router();
 cardRouter.post('/newcard', checkApiKey, validateSchema(typeCard), cardController.newCard);
 cardRouter.post('/activatecard', cardController.activateCard);
 cardRouter.get('/viewcards', cardController.viewCards);
-cardRouter.get('/extract/:id', cardController.getExtract)
+cardRouter.get('/extract/:id', cardController.getExtract);
+cardRouter.put('/blockcard', cardController.blockCard);
 
 export default cardRouter;

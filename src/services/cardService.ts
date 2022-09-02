@@ -8,6 +8,7 @@ import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import { passwordSchema } from '../schemas/passwordSchema';
+import { valid } from 'joi';
 
 
 const cryptr = new Cryptr("myTotallySecretKey");
@@ -90,7 +91,7 @@ export async function viewCards (id: number, password: string) {
 export async function getExtract (id: number) {
     let balance = 0;
     const validCard = await cardRepository.findById(id);
-    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}}
+    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}};
     const outcomes = await paymentRepository.findByCardId(id);
     const incomes = await rechargeRepository.findByCardId(id);
     
@@ -103,4 +104,15 @@ export async function getExtract (id: number) {
     }
 
     return { balance, transactions: outcomes, incomes};
+}
+
+export async function blockCard (id: number, password: string) {
+    const validCard : any = await cardRepository.findById(id);
+    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}};
+    if(validCard.expirationDate >= dayjs().format('MM/YY')) { throw { type: 'Unauthorized', message: `This card is already expired!` }};
+    if(validCard.isBlocked === true) { throw { type: 'Unauthorized', message: `This card is already blocked!`}};
+    const decryptedPassword : any = cryptr.decrypt(validCard.password);
+    if (password !== decryptedPassword) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
+
+    await cardRepository.update(id, { isBlocked: true });
 }

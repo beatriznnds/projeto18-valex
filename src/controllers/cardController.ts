@@ -34,3 +34,11 @@ export async function getExtract (req: Request, res: Response) {
 
     return res.status(200).send(extract);
 }
+
+export async function blockCard (req: Request, res: Response) {
+    const { id, password } : { id: number, password: string } = req.body;
+
+    await cardServices.blockCard(id, password);
+
+    return res.sendStatus(200);
+}
