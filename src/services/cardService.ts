@@ -69,3 +69,18 @@ export async function activateCard (id: number, securityCode: string, password: 
 
     await cardRepository.update(id, {password: encryptedPassword});
 }
+
+export async function viewCards (id: number, password: string) {
+    const employeeCards = [];
+    const cards = await cardRepository.findByEmployeeId(id);
+    if(cards.length === 0) { throw { type: 'Not Found', message: `This employee doesn't have cards registered!` }};
+    for (const card of cards) {
+        const decryptedPassword = cryptr.decrypt(card.password)
+        if(password === decryptedPassword) {
+            delete card.id; delete card.employeeId; delete card.password; delete card.isVirtual; delete card.originalCardId; delete card.isBlocked; delete card.type;
+            card.securityCode = cryptr.decrypt(card.securityCode);
+            employeeCards.push(card);
+        }
+    }
+    return employeeCards;
+}
