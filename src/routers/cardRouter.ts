@@ -11,5 +11,6 @@ cardRouter.post('/activatecard', cardController.activateCard);
 cardRouter.get('/viewcards', cardController.viewCards);
 cardRouter.get('/extract/:id', cardController.getExtract);
 cardRouter.put('/blockcard', cardController.blockCard);
+cardRouter.put('/unblockcard', cardController.unblockCard)
 
 export default cardRouter;

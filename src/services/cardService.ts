@@ -116,3 +116,14 @@ export async function blockCard (id: number, password: string) {
 
     await cardRepository.update(id, { isBlocked: true });
 }
+
+export async function unblockCard (id: number, password: string) {
+    const validCard : any = await cardRepository.findById(id);
+    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}};
+    if(validCard.expirationDate >= dayjs().format('MM/YY')) { throw { type: 'Unauthorized', message: `This card is already expired!` }};
+    if(validCard.isBlocked === false) { throw { type: 'Unauthorized', message: `This card is already unblocked!`}};
+    const decryptedPassword : any = cryptr.decrypt(validCard.password);
+    if (password !== decryptedPassword) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
+
+    await cardRepository.update(id, { isBlocked: false });
+}
