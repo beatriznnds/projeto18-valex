@@ -1,6 +1,8 @@
 import * as cardRepository from '../repositories/cardRepository';
 import * as companyRepository from '../repositories/companyRepository';
 import * as employeeRepository from '../repositories/employeeRepository';
+import * as paymentRepository from '../repositories/paymentRepository';
+import * as rechargeRepository from '../repositories/rechargeRepository';
 import { TransactionTypes } from '../repositories/cardRepository';
 import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
@@ -83,4 +85,22 @@ export async function viewCards (id: number, password: string) {
         }
     }
     return employeeCards;
+}
+
+export async function getExtract (id: number) {
+    let balance = 0;
+    const validCard = await cardRepository.findById(id);
+    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}}
+    const outcomes = await paymentRepository.findByCardId(id);
+    const incomes = await rechargeRepository.findByCardId(id);
+    
+    for (const income of incomes) {
+        balance += income.amount;
+    }
+    
+    for (const outcome of outcomes) {
+        balance -= outcome.amount;
+    }
+
+    return { balance, transactions: outcomes, incomes};
 }

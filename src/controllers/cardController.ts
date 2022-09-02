@@ -26,3 +26,11 @@ export async function viewCards (req: Request, res: Response) {
 
     return res.status(200).send({ cards: allCardsForUser})
 }
+
+export async function getExtract (req: Request, res: Response) {
+    const cardId : number = Number(req.params.id);
+
+    const extract = await cardServices.getExtract(cardId);
+
+    return res.status(200).send(extract);
+}
