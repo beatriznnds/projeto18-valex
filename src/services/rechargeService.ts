@@ -1,12 +1,9 @@
 import * as rechargeRepository from '../repositories/rechargeRepository';
-import * as cardRepository from '../repositories/cardRepository';
-import dayjs from 'dayjs';
+import * as cardServices from './cardService';
 
 export async function rechargeCard(id: number, amount: number) {
-    const validCard = await cardRepository.findById(id);
-    if (!validCard) { throw { type: 'Not found', message: `This card was not found!` }};
-    if(!validCard.password) { throw { type: 'Unauthorized', message: `This card needs to be activated!` }};
-    if(validCard.expirationDate >= dayjs().format('MM/YY')) { throw { type: 'Unauthorized', message: `This card is already expired!` }};
-    
+    const validCard = await cardServices.validateCardId(id);
+    await cardServices.validExpirationDate(id);
+    await cardServices.cardIsInactive(id);
     await rechargeRepository.insert({ cardId: id, amount });
 }

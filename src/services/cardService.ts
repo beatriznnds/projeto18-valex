@@ -12,6 +12,40 @@ import { passwordSchema } from '../schemas/passwordSchema';
 
 const cryptr = new Cryptr("myTotallySecretKey");
 
+export async function validateCardId (id: number) {
+    const validCard = await cardRepository.findById(id);
+    if(!validCard) { { throw { type: 'Not Found', message: `Card not found!`}}};
+    return validCard;
+}
+
+export async function validExpirationDate (id: number) {
+    const validCard = await validateCardId(id);
+    const today = dayjs().format('MM/YY');
+    if(validCard.expirationDate >= today) { throw { type: 'Unauthorized', message: `This card is already expired!` }};
+}
+
+export async function cardIsActive (id: number) {
+    const validCard = await validateCardId(id);
+    if(validCard.password !== null) { throw  { type: 'Conflict', message: `This card is already activated!`}};
+}
+
+export async function decryptCVV (id: number) {
+    const validCard = await validateCardId(id);
+    const decryptedCVV = cryptr.decrypt(validCard.securityCode);
+    return decryptedCVV;
+}
+
+export async function decryptPassword (id: number) {
+    const validCard : any = await validateCardId(id);
+    const decryptedPassword = cryptr.decrypt(validCard.password);
+    return decryptedPassword;
+}
+
+export async function cardIsInactive (id: number) {
+    const validCard = await validateCardId(id);
+    if (!validCard.password) { throw { type: 'Unauthorized', message: 'This card was not activated!' }};
+}
+
 export async function createNewCard (apiKey: string, employeeId: number, type: TransactionTypes) {
     const validCompany = await companyRepository.findByApiKey(apiKey);
     if (!validCompany) { throw { type: 'Not Found', message: `ApiKey not found!` }}
@@ -52,23 +86,14 @@ export async function createNewCard (apiKey: string, employeeId: number, type: T
 }
 
 export async function activateCard (id: number, securityCode: string, password: string) {
-    const validCard = await cardRepository.findById(id);
-    if(!validCard) { throw { type: 'Not Found', message: `Card not found!`}}
-
-    if(validCard.expirationDate >= dayjs().format('MM/YY')) { throw { type: 'Unauthorized', message: `This card is already expired!` }};
-
-    if(validCard.password !== null) { throw { type: 'Conflict', message: `This card is already activated!`}};
-
-    const decryptedCVV = cryptr.decrypt(validCard.securityCode);
-    console.log(decryptedCVV);
+    await validateCardId(id);
+    await validExpirationDate(id);
+    await cardIsActive(id);
+    const decryptedCVV = await decryptCVV(id);
     if(securityCode !== decryptedCVV) { throw { type: 'Unauthorized', message: `Invalid CVV!`}};
-
     const { error } =  passwordSchema.validate({ password });
-
     if(error) { throw { type: 'Unauthorized', message: 'Password too short!'}};
-
     const encryptedPassword = cryptr.encrypt(password);
-
     await cardRepository.update(id, {password: encryptedPassword});
 }
 
@@ -77,7 +102,7 @@ export async function viewCards (id: number, password: string) {
     const cards = await cardRepository.findByEmployeeId(id);
     if(cards.length === 0) { throw { type: 'Not Found', message: `This employee doesn't have cards registered!` }};
     for (const card of cards) {
-        const decryptedPassword = cryptr.decrypt(card.password)
+        const decryptedPassword = cryptr.decrypt(card.password);
         if(password === decryptedPassword) {
             delete card.id; delete card.employeeId; delete card.password; delete card.isVirtual; delete card.originalCardId; delete card.isBlocked; delete card.type;
             card.securityCode = cryptr.decrypt(card.securityCode);
@@ -89,8 +114,7 @@ export async function viewCards (id: number, password: string) {
 
 export async function getExtract (id: number) {
     let balance = 0;
-    const validCard = await cardRepository.findById(id);
-    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}};
+    validateCardId(id);
     const outcomes = await paymentRepository.findByCardId(id);
     const incomes = await rechargeRepository.findByCardId(id);
     
@@ -106,23 +130,19 @@ export async function getExtract (id: number) {
 }
 
 export async function blockCard (id: number, password: string) {
-    const validCard : any = await cardRepository.findById(id);
-    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}};
-    if(validCard.expirationDate >= dayjs().format('MM/YY')) { throw { type: 'Unauthorized', message: `This card is already expired!` }};
+    const validCard = await validateCardId(id);
+    await validExpirationDate(id);
     if(validCard.isBlocked === true) { throw { type: 'Unauthorized', message: `This card is already blocked!`}};
-    const decryptedPassword : any = cryptr.decrypt(validCard.password);
+    const decryptedPassword = await decryptPassword(id);
     if (password !== decryptedPassword) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
-
     await cardRepository.update(id, { isBlocked: true });
 }
 
 export async function unblockCard (id: number, password: string) {
-    const validCard : any = await cardRepository.findById(id);
-    if (!validCard) { throw { type: 'Not Found', message: `This card was not found!`}};
-    if(validCard.expirationDate >= dayjs().format('MM/YY')) { throw { type: 'Unauthorized', message: `This card is already expired!` }};
+    const validCard = await validateCardId(id);
+    await validExpirationDate(id);
     if(validCard.isBlocked === false) { throw { type: 'Unauthorized', message: `This card is already unblocked!`}};
-    const decryptedPassword : any = cryptr.decrypt(validCard.password);
+    const decryptedPassword = await decryptPassword(id);
     if (password !== decryptedPassword) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
-
     await cardRepository.update(id, { isBlocked: false });
 }
