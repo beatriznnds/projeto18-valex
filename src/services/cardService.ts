@@ -8,7 +8,6 @@ import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import { passwordSchema } from '../schemas/passwordSchema';
-import { valid } from 'joi';
 
 
 const cryptr = new Cryptr("myTotallySecretKey");

@@ -8,7 +8,7 @@ export async function newCard (req: Request, res: Response) {
 
     await cardServices.createNewCard(apiKey, employeeId, type);
 
-    return res.sendStatus(201);
+    return res.status(201).send({ message: `Card created!`});
 }
 
 export async function activateCard (req: Request, res: Response) {
@@ -16,7 +16,7 @@ export async function activateCard (req: Request, res: Response) {
 
     await cardServices.activateCard(id, securityCode, password);
 
-    return res.sendStatus(201);
+    return res.status(201).send({ message: `Card activated!` });
 }
 
 export async function viewCards (req: Request, res: Response) {
@@ -40,7 +40,7 @@ export async function blockCard (req: Request, res: Response) {
 
     await cardServices.blockCard(id, password);
 
-    return res.sendStatus(200);
+    return res.status(200).send({ message: `Card blocked!` });
 }
 
 export async function unblockCard (req: Request, res: Response) {
@@ -48,5 +48,5 @@ export async function unblockCard (req: Request, res: Response) {
 
     await cardServices.unblockCard(id, password);
 
-    return res.sendStatus(200);
+    return res.status(200).send({ message: `Card unblocked!` });
 }
