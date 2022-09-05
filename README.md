@@ -22,7 +22,7 @@ To get account history:
  - req object expects:
  	- req.params: cardId;
  	
-To get block and unblock a card:
+To block and unblock a card:
  - HTTP request method: .PUT('/blockcard') || .PUT('/unblockcard')
  - req object expects:
  	- req.params.id: id, password;
