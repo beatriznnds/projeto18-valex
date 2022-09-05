@@ -25,7 +25,7 @@ To get account history:
 To get block and unblock a card:
  - HTTP request method: .PUT('/blockcard') || .PUT('/unblockcard')
  - req object expects:
- 	- req.params.id: cardId;
+ 	- req.params.id: id, password;
  	
 To recharge a card:
  - HTTP request method: .POST('/recharge')
