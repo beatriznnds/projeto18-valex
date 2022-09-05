@@ -8,7 +8,7 @@ import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import { passwordSchema } from '../schemas/passwordSchema';
-
+import bcrypt from "bcrypt";
 
 const cryptr = new Cryptr("myTotallySecretKey");
 
@@ -35,10 +35,10 @@ export async function decryptCVV (id: number) {
     return decryptedCVV;
 }
 
-export async function decryptPassword (id: number) {
+export async function comparePassword (id: number, password: string) {
     const validCard : any = await validateCardId(id);
-    const decryptedPassword = cryptr.decrypt(validCard.password);
-    return decryptedPassword;
+    bcrypt.compareSync(password, validCard.password);
+    return true;
 }
 
 export async function cardIsInactive (id: number) {
@@ -93,7 +93,7 @@ export async function activateCard (id: number, securityCode: string, password: 
     if(securityCode !== decryptedCVV) { throw { type: 'Unauthorized', message: `Invalid CVV!`}};
     const { error } =  passwordSchema.validate({ password });
     if(error) { throw { type: 'Unauthorized', message: 'Password too short!'}};
-    const encryptedPassword = cryptr.encrypt(password);
+    const encryptedPassword = bcrypt.hashSync(password, 10);
     await cardRepository.update(id, {password: encryptedPassword});
 }
 
@@ -102,8 +102,7 @@ export async function viewCards (id: number, password: string) {
     const cards = await cardRepository.findByEmployeeId(id);
     if(cards.length === 0) { throw { type: 'Not Found', message: `This employee doesn't have cards registered!` }};
     for (const card of cards) {
-        const decryptedPassword = cryptr.decrypt(card.password);
-        if(password === decryptedPassword) {
+        if(await comparePassword(id, password)) {
             delete card.id; delete card.employeeId; delete card.password; delete card.isVirtual; delete card.originalCardId; delete card.isBlocked; delete card.type;
             card.securityCode = cryptr.decrypt(card.securityCode);
             employeeCards.push(card);
@@ -133,8 +132,7 @@ export async function blockCard (id: number, password: string) {
     const validCard = await validateCardId(id);
     await validExpirationDate(id);
     if(validCard.isBlocked === true) { throw { type: 'Unauthorized', message: `This card is already blocked!`}};
-    const decryptedPassword = await decryptPassword(id);
-    if (password !== decryptedPassword) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
+    if (await comparePassword(id, password)) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
     await cardRepository.update(id, { isBlocked: true });
 }
 
@@ -142,7 +140,6 @@ export async function unblockCard (id: number, password: string) {
     const validCard = await validateCardId(id);
     await validExpirationDate(id);
     if(validCard.isBlocked === false) { throw { type: 'Unauthorized', message: `This card is already unblocked!`}};
-    const decryptedPassword = await decryptPassword(id);
-    if (password !== decryptedPassword) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
+    if (await comparePassword(id, password) === false) { throw { type: 'Unauthorized', message: `Unauthorized!`}};
     await cardRepository.update(id, { isBlocked: false });
 }
